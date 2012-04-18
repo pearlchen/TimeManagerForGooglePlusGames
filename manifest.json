@@ -1,0 +1,25 @@
+{
+  "name": "Games Banner for Google+",
+  "version": "1.1.9",
+  "description": "Allows you to hide the Google+ Games button and kicks you out of the games area between certain hours of the day.",
+  "icons": { "16":  "icon16.png",
+           	 "48":  "icon48.png",
+          	 "128": "icon128.png" },
+  "page_action": {
+    "default_icon": "icon16.png",
+	"default_title": "Change blocked hours",
+	"default_popup": "options.html"
+  },
+  "background_page": "background.html",
+  "options_page": "options.html",
+  "permissions": [
+    "tabs", 
+	"http://plus.google.com/*", "https://plus.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [ "http://plus.google.com/*", "https://plus.google.com/*" ],
+      "js": [ "scripts.js" ]
+    }
+  ]
+}

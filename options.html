@@ -1,0 +1,165 @@
+<!-- //TODO: fancy time picker UI instead of 24h text input box -->
+<!DOCTYPE html>
+<head>
+	<title>Google+ Games Banner Options</title>
+    <style type="text/css">
+		body { width:300px; min-height: 110px; padding: 0 10px 10px 10px; font-family:Helvetica, Arial, sans-serif; color:#333; font-size:14px; }
+		h1 { font-size:18px; color:#da4936; }
+		h2 { font-size:14px; color:#000; }
+		#start_time, #end_time { border:1px solid #ddd; color:#404A69; padding:3px; width:28px; text-align:center; margin-right:2px; margin-left: 2px; }
+		#form { width: 285px; margin: 0 auto; }
+		#form div { display:inline; padding-right:12px; float:left; }
+		#saveButton { float: left; }
+		#status { color:#ccc; font-size:12px; clear:both; padding-top:5px; text-align:center; }
+		#status strong{ color:#999; }		
+		.time_selector { width: 200px; z-index: 50; position: relative; display: none; padding: 10px; margin: 0 auto; }
+		.time_selector span { cursor: pointer; display: inline-block; width: 44px; box-sizing: border-box; float: left position: relative; padding: 3px; border: 1px solid #ccc; background: #ddd; border-radius: 4px; margin: 2px; text-align: center; }
+		.time_selector span:hover { background: #ccc; }
+	</style>
+</head>
+
+<body onLoad="restoreOptions()">
+
+    <h1>Google+ Games Banner Options</h1>
+    
+    <h2>Timeframe to hide Google+ Games:</h2>
+    
+    <div id="form">
+        <div><label for="start_time">Start @</label><input type="text" name="start_time" id="start_time" maxlength="2" />:00</div>
+        <div><label for="end_time">End @</label><input type="text" name="end_time" id="end_time" maxlength="2"/>:00</div>  
+        <button onClick="saveOptions()" id="saveButton">Save</button>
+    </div>
+    <div id="status"></div>
+
+<script type="text/javascript">
+
+var defaultStatus = "(Uses <strong>24h format</strong> to store your start and end times)";
+var wrongTimeStatus = "End time needs to <strong>after</strong> the start time."
+var useButtonsBelowStatus = "Select from a time below:";
+		
+var startTimeInput = document.getElementById( "start_time" );
+var endTimeInput = document.getElementById( "end_time" );
+var statusDiv = document.getElementById( "status" );
+
+var bkg = chrome.extension.getBackgroundPage();
+	
+function saveOptions() {
+	
+	var error = false;
+	
+	startTimeInput.style.borderColor = "#ddd";
+	endTimeInput.style.borderColor = "#ddd";
+	
+	var startTime = Number( startTimeInput.value );
+	//console.log( "start time input value: " + startTime );
+	
+	var endTime = Number( endTimeInput.value );
+	//console.log( "end time input value: " + endTime );
+	
+	if ( isNaN( startTime ) || startTime > 24 ) {
+		error = true;
+		startTimeInput.style.borderColor = "#ff0000";
+		status.innerHTML = defaultStatus;
+	}
+	if ( isNaN( endTime ) || endTime > 24 ) {
+		error = true;
+		endTimeInput.style.borderColor = "#ff0000";
+		status.innerHTML = defaultStatus;
+	}
+	
+	if ( error ) return;
+	
+	// If no errors, save values to HTML5 localStorage
+	localStorage.setItem( "start_time", startTime );
+	localStorage.setItem( "end_time", endTime );
+	
+	// Update status to let user know options were saved.
+	statusDiv.innerHTML = "Times saved!";
+	setTimeout(function() { 
+		statusDiv.innerHTML = "";
+	}, 1000);
+	
+	// Update all open tabs with Plus running in it
+	bkg.sendRequestToOpenTabs();			
+}
+
+function restoreOptions() {
+
+	// init 
+	statusDiv.innerHTML = defaultStatus;
+	setup_time_selectors('start_time');
+	setup_time_selectors('end_time');
+
+	//restore
+	var startTime = localStorage.getItem( "start_time" );
+	var endTime = localStorage.getItem( "end_time" );
+	
+	if ( !startTime && !endTime ) return;
+	
+	// Restore input fields from values stored in HTML5 localStorage if available
+	document.getElementById( "start_time" ).setAttribute( "value", startTime );
+	document.getElementById( "end_time" ).setAttribute( "value", endTime );
+		
+}
+
+function setup_time_selectors( input_attachment ){
+	var hour_count = 24,
+	i = 0,
+	input = document.getElementById(input_attachment),
+	container_dom = document.createElement('div');
+
+	container_dom.setAttribute('id', input_attachment + '_selector');
+	container_dom.setAttribute('class', 'time_selector');
+
+	while(i < hour_count){
+		new_time_item = document.createElement('span');
+		if(i == 0){
+			new_time_item.innerHTML = '12am';
+		}else if(i < 12){
+			new_time_item.innerHTML = i + 'am';
+		}else if(i == 12){
+			new_time_item.innerHTML = i + 'pm';
+		}else{
+			new_time_item.innerHTML = (i - 12) + 'pm';
+		}
+		new_time_item.setAttribute('rel', i);
+		new_time_item.addEventListener('click', function(e){
+			input.setAttribute('value', e.target.getAttribute('rel'));
+			
+			all_doms = document.getElementsByClassName('time_selector');
+			n = all_doms.length;
+			while(n){
+				all_doms[n - 1].style.display = 'none';
+				n--;
+			}
+		}, true);
+	
+		container_dom.appendChild(new_time_item);
+		i++;
+	}
+	
+	document.body.appendChild(container_dom);
+	input.addEventListener('focus', function(){
+		current_id = container_dom.getAttribute('id');
+		all_doms = document.getElementsByClassName('time_selector');
+		n = all_doms.length;
+		while(n){
+			if(all_doms[n-1].getAttribute('id') != current_id) all_doms[n-1].style.display = 'none';
+			n--;
+		}
+		container_dom.style.display = 'block';
+		statusDiv.innerHTML = useButtonsBelowStatus;
+	}, false);
+	input.addEventListener('blur', function(){
+		statusDiv.innerHTML = defaultStatus;
+		setTimeout(function(){
+			container_dom.style.display = 'none';
+			document.body.style.height = "110px";
+		}, 300);
+	}, false);
+}
+
+</script>
+  
+</body>
+</html>

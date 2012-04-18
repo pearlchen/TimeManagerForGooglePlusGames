@@ -1,0 +1,132 @@
+<script>
+
+var hourLastChecked;
+var checkTimer;
+
+var suppressWarnings = false;
+var suppressDuration = 60000 * 30; // 30 minutes //TODO: could eventually come from the Options page
+
+var openTabIds = [];
+
+/////////////
+
+chrome.tabs.onUpdated.addListener( checkForValidUrl );
+chrome.tabs.onRemoved.addListener( removeTabId );
+chrome.extension.onRequest.addListener( function( request, sender, sendResponse ) {
+	var response = createResponse();
+	sendResponse( response ); //will call the callback function in scripts.js
+});
+
+init();
+
+//////////////////
+
+function init() {
+	
+	var date = new Date();
+	var currentHour = date.getHours();
+	hourLastChecked = currentHour;
+	
+	var minutesToNextHour = 60 - date.getMinutes();
+	checkTimer = setTimeout( refreshGames, minutesToNextHour * 60 * 1000 );
+	
+	console.log( "Google+ Games Banner: hourLastChecked: " + hourLastChecked +", check again in " + minutesToNextHour + " minutes");
+}
+
+function refreshGames() {
+	clearTimeout( checkTimer );
+	suppressWarnings = false;
+	sendRequestToOpenTabs();
+	init();
+}
+
+function checkForValidUrl( tabId, changeInfo, tab ) {
+	
+	if ( changeInfo.status != "complete" ) return;
+	
+	if ( tab.url.indexOf('plus.google.com') > -1 ) {
+		chrome.pageAction.show( tabId );
+		chrome.tabs.getSelected( null, function( tab ) {
+			sendRequestToTab( tabId );
+			addTabId( tabId );
+		});	
+		/*
+		if ( tab.url.indexOf('games') > -1 && suppressWarnings == false ) {
+			var stay = confirm( "Are you sure you should be here? ;)" );
+			if ( stay ) {
+				//suppress warnings for a bit
+				suppressWarnings = true;
+				setTimeout(function() { 
+					suppressWarnings = false;
+				}, suppressDuration);
+			}else{
+				chrome.tabs.executeScript( null, {code:"window.location = 'https://plus.google.com'"} );
+			}
+		}
+		*/
+	}
+	
+};
+
+function addTabId( tabId ) {
+	if ( openTabIds.indexOf( tabId ) == -1 )
+		openTabIds.push( tabId );
+}
+
+function removeTabId( tabId, removeInfo, isWindowClosing ) {
+	var i = openTabIds.indexOf( tabId );
+	if ( i > -1 )
+		openTabIds.splice( i, 1 );
+}
+
+function sendRequestToOpenTabs() {
+	var response = createResponse();
+	for ( var i=0; i<openTabIds.length; i++ ) {
+		var tabId = openTabIds[i];
+		chrome.tabs.sendRequest( tabId, response );
+	}
+}
+
+function sendRequestToTab( tabId ) {
+	var response = createResponse();
+	chrome.tabs.sendRequest( tabId, response );
+}
+
+function createResponse() {
+	
+	var startTime = Number( localStorage.getItem( "start_time" ) );
+	var endTime = Number( localStorage.getItem( "end_time" ) );
+	
+	var response = new Object();
+	if ( startTime != null ) {
+		response.success = true;
+		response.startTime = startTime;
+		response.endTime = endTime;
+		response.hide = isBetweenTimes( startTime, endTime );
+	}
+	else {
+		response.success = false;
+		response.hide = false;
+	}
+	return response;
+}
+
+function isBetweenTimes( startTime, endTime ){
+	
+	var date = new Date();
+	var currentHour = date.getHours();
+	
+	if ( startTime == 24 ) startTime = 0;
+	if ( endTime == 24 ) endTime = 0;
+	
+    if ( endTime == startTime )  return true;
+    
+	if ( endTime < startTime ) {
+        return currentHour < endTime || currentHour >= startTime;
+	}else{
+        return currentHour >= startTime && currentHour < endTime;
+	}
+}
+
+
+</script>
