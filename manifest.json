@@ -1,6 +1,6 @@
 {
-  "name": "Games Banner for Google+",
-  "version": "1.1.9",
+  "name": "Time Manager for Google+ Games",
+  "version": "1.1.12",
   "description": "Allows you to hide the Google+ Games button and kicks you out of the games area between certain hours of the day.",
   "icons": { "16":  "icon16.png",
            	 "48":  "icon48.png",

@@ -1,9 +1,9 @@
-var links = document.body.getElementsByTagName( "a" );
+var links = document.body.getElementsByClassName( "rJa6h BvH7hb" );
 var numLinks = links.length;
 var gamesButton;
 for ( var i=0; i<numLinks; i++ ) {
 	var a = links[i];
-	if ( a.getAttribute( "aria-label" ) == "Games" ) {
+	if ( a.getAttribute( "navid" ) == "4" ) {
 		gamesButton = a;
 		break;
 	}
@@ -32,7 +32,7 @@ function updateVisibility( response ) {
 	if ( response.hide ) 
 		gamesButton.style.display = "none";
 	else
-		gamesButton.style.display = "inline-block";
+		gamesButton.style.display = "block";
 		
 	if ( response.hide ) {
 		var url = window.location.href;
